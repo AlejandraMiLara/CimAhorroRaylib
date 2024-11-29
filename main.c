@@ -46,8 +46,8 @@ void accionRetirar();
 int main(void)
 {
     // CONFIGURACIONES INICIALES
-    const int screenWidth = 800;
-    const int screenHeight = 450;
+    const int screenWidth = 1020;
+    const int screenHeight = 720;
     SetConfigFlags(FLAG_MSAA_4X_HINT);
     InitAudioDevice();
     InitWindow(screenWidth, screenHeight, "CIMAHORRO");
@@ -120,22 +120,25 @@ void actualizarScreens() {
 void dibujarScreens() {
     switch (currentScreen) {
         case SCREEN_LOGO:
-            DrawText("LOGO", 350, 200, 20, BLACK);
+            DrawText("LOGO", 150, 20, 20, BLACK);
             break;
         case SCREEN_MENU:
-            DrawText("MENU", 350, 200, 20, BLACK);
+            DrawText("MENU", 150, 20, 20, BLACK);
             break;
         case SCREEN_AHORROS_PRINCIPAL:
-            DrawText("MIS AHORROS", 20, 20, 20, BLACK);
+            DrawText("MIS AHORROS", 150, 20, 20, BLACK);
             break;
         case SCREEN_AHORROS_VER:
-            DrawText("VER AHORROS", 350, 200, 20, BLACK);
+            DrawText("MIS AHORROS", 150, 20, 20, BLACK);
+            DrawText("VER AHORROS", 150, 100, 20, BLACK);
             break;
         case SCREEN_AHORROS_AHORRAR:
-            DrawText("AGREGAR AHORRO", 350, 200, 20, BLACK);
+            DrawText("MIS AHORROS", 150, 20, 20, BLACK);
+            DrawText("AGREGAR AHORRO", 150, 100, 20, BLACK);
             break;
         case SCREEN_AHORROS_RETIRAR:
-            DrawText("RETIRAR AHORRO", 350, 200, 20, BLACK);
+            DrawText("MIS AHORROS", 150, 20, 20, BLACK);
+            DrawText("RETIRAR AHORRO", 150, 100, 20, BLACK);
             break;
         default:
             break;
@@ -177,7 +180,7 @@ void verificarBotones(Boton botones[], int cantidad) {
     }
 }
 
-// FUNCIONES DE MANEJO DE ACCIONES
+// FUNCIONES DE MANEJO DE ACCIONES EN BOTONES
 
 void accionVerAhorros() {
     currentScreen = SCREEN_AHORROS_VER;
@@ -190,3 +193,6 @@ void accionAhorrar() {
 void accionRetirar() {
     currentScreen = SCREEN_AHORROS_RETIRAR;
 }
+
+
+// FUNCIONES DE MANEJO DE ARCHIVOS
