@@ -15,6 +15,9 @@ typedef enum GameScreen {
 GameScreen currentScreen = SCREEN_LOGO;
 const int MAX_SCREENS_DESLIZABLES = SCREEN_AHORROS_PRINCIPAL + 1;
 
+//VARIABLES GLOBALES
+bool logoMostrado = false;
+
 // ESTRUCTURAS
 
 typedef struct Boton {
@@ -26,11 +29,79 @@ typedef struct Boton {
 
 // FUNCIONES DE MANEJO DE PANTALLAS
 
+void actualizarScreens();
+void dibujarScreens();
+
+// FUNCIONES DE MANEJO DE BOTONES
+
+void dibujarBotones(Boton botones[], int cantidad);
+void verificarBotones(Boton botones[], int cantidad);
+
+// FUNCIONES DE MANEJO DE ACCIONES
+
+void accionVerAhorros();
+void accionAhorrar();
+void accionRetirar();
+
+int main(void)
+{
+    // CONFIGURACIONES INICIALES
+    const int screenWidth = 800;
+    const int screenHeight = 450;
+    SetConfigFlags(FLAG_MSAA_4X_HINT);
+    InitAudioDevice();
+    InitWindow(screenWidth, screenHeight, "CIMAHORRO");
+    SetTargetFPS(60);
+
+    // VARIABLES DE ENTORNO
+
+    //Variables: SCREEN_AHORROS_PRINCIPAL
+    Boton botones[3] = {
+        {{ 0, 0, 200, 50 }, BLUE, "Mis Ahorros", accionVerAhorros},
+        {{ 0, 0, 200, 50 }, BLUE, "Ahorrar", accionAhorrar},
+        {{ 0, 0, 200, 50 }, BLUE, "Retirar", accionRetirar}
+    };
+
+
+    // BUCLE PRINCIPAL
+    while (!WindowShouldClose()) {
+        // LÓGICA
+        actualizarScreens();
+        
+        // DIBUJO
+        BeginDrawing();
+        ClearBackground(RAYWHITE);
+
+        dibujarScreens();
+        
+        if (currentScreen == SCREEN_AHORROS_PRINCIPAL) {
+            verificarBotones(botones, 3);
+            dibujarBotones(botones, 3);
+        }
+        
+        EndDrawing();
+    }
+
+    CloseWindow();
+
+    return 0;
+}
+
+// FUNCIONES DE MANEJO DE PANTALLAS
+
 void actualizarScreens() {
+    if(currentScreen == SCREEN_LOGO){
+        logoMostrado = true;
+    }
+
     if (IsKeyPressed(KEY_RIGHT)) {
         if (currentScreen < MAX_SCREENS_DESLIZABLES - 1) {
             ClearBackground(RAYWHITE);
             currentScreen = (currentScreen + 1) % MAX_SCREENS_DESLIZABLES;
+        }
+
+        if(currentScreen == SCREEN_LOGO){
+            currentScreen = SCREEN_MENU;
         }
     }
 
@@ -38,6 +109,10 @@ void actualizarScreens() {
         if (currentScreen > SCREEN_MENU) {
             ClearBackground(RAYWHITE);
             currentScreen = (currentScreen - 1 + MAX_SCREENS_DESLIZABLES) % MAX_SCREENS_DESLIZABLES;
+        }
+
+        if(currentScreen == SCREEN_LOGO){
+            currentScreen = SCREEN_MENU;
         }
     }
 }
@@ -114,45 +189,4 @@ void accionAhorrar() {
 
 void accionRetirar() {
     currentScreen = SCREEN_AHORROS_RETIRAR;
-}
-
-int main(void)
-{
-    // CONFIGURACIONES INICIALES
-    const int screenWidth = 800;
-    const int screenHeight = 450;
-    SetConfigFlags(FLAG_MSAA_4X_HINT);
-    InitAudioDevice();
-    InitWindow(screenWidth, screenHeight, "CIMAHORRO");
-    SetTargetFPS(60);
-
-    // VARIABLES DE ENTORNO
-    Boton botones[3] = {
-        {{ 0, 0, 200, 50 }, BLUE, "Mis Ahorros", accionVerAhorros},
-        {{ 0, 0, 200, 50 }, BLUE, "Ahorrar", accionAhorrar},
-        {{ 0, 0, 200, 50 }, BLUE, "Retirar", accionRetirar}
-    };
-
-    // BUCLE PRINCIPAL
-    while (!WindowShouldClose()) {
-        // LÓGICA
-        actualizarScreens();
-        
-        // DIBUJO
-        BeginDrawing();
-        ClearBackground(RAYWHITE);
-
-        dibujarScreens();
-        
-        if (currentScreen == SCREEN_AHORROS_PRINCIPAL) {
-            verificarBotones(botones, 3);
-            dibujarBotones(botones, 3);
-        }
-        
-        EndDrawing();
-    }
-
-    CloseWindow();
-
-    return 0;
 }
