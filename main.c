@@ -1,4 +1,6 @@
 #include "raylib.h"
+#include <stdio.h>
+#include <stdlib.h>
 
 // SCREENS
 
@@ -27,6 +29,12 @@ typedef struct Boton {
     void (*accion)();
 } Boton;
 
+
+//
+// P R O T O T I P O S  D E  F U N C I O N E S  
+//
+
+
 // FUNCIONES DE MANEJO DE PANTALLAS
 
 void actualizarScreens();
@@ -42,6 +50,30 @@ void verificarBotones(Boton botones[], int cantidad);
 void accionVerAhorros();
 void accionAhorrar();
 void accionRetirar();
+
+// FUNCIONES DE MANEJO DE PANTALLAS
+
+void actualizarScreens();
+void dibujarScreens();
+
+// FUNCIONES DE MANEJO DE BOTONES
+
+void dibujarBotones(Boton botones[], int cantidad);
+void verificarBotones(Boton botones[], int cantidad);
+
+// FUNCIONES DE MANEJO DE ACCIONES
+
+void accionVerAhorros();
+void accionAhorrar();
+void accionRetirar();
+
+// FUNCIONES DE MANEJO DE ARCHIVOS
+FILE* manejoArchivos(const char *nombreArchivo, const char *modo, bool *archivoCreado);
+
+
+//
+// M A I N
+//
 
 int main(void)
 {
@@ -86,6 +118,10 @@ int main(void)
 
     return 0;
 }
+
+//
+// F U N C I O N E S  
+//
 
 // FUNCIONES DE MANEJO DE PANTALLAS
 
@@ -194,5 +230,20 @@ void accionRetirar() {
     currentScreen = SCREEN_AHORROS_RETIRAR;
 }
 
-
 // FUNCIONES DE MANEJO DE ARCHIVOS
+FILE* manejoArchivos(const char *nombreArchivo, const char *modo, bool *archivoCreado) {
+    FILE *archivo = fopen(nombreArchivo, modo);
+
+    if (archivo == NULL) {
+        archivo = fopen(nombreArchivo, "w+");
+        if (archivo != NULL && archivoCreado != NULL) {
+            *archivoCreado = true;
+        }
+    } else {
+        if (archivoCreado != NULL) {
+            *archivoCreado = false;
+        }
+    }
+
+    return archivo;
+}
