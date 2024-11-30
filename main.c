@@ -19,7 +19,7 @@ typedef struct Boton {
 typedef struct NodoAhorro {
     int idUsuario;
     char nombreUsuario[50];
-    int cantidadAhorrada;
+    int cantidad;
     char fecha[11];
     struct NodoAhorro *siguiente;
 } NodoAhorro;
@@ -47,6 +47,8 @@ int inputPos = 0;         // Pos actual del buffer de entrada
 bool registroExitoso = false; // Indica si la operacion fue exitosa
 char mensaje[128] = "";   // Mensaje para el usuario
 NodoAhorro *listaAhorros = NULL;
+char usuario_global[50] = "Trunks";
+int id_global = 1;
 
 // COLORES
 Color verdeEsmeralda = {80, 200, 120, 255};
@@ -191,11 +193,11 @@ void dibujarScreens() {
             } else {
                 NodoAhorro *actual = listaAhorros;
                 while (actual != NULL) {
-                    totalAhorros += actual->cantidadAhorrada;
+                    totalAhorros += actual->cantidad;
 
                     char desglose[128];
                     snprintf(desglose, sizeof(desglose), "Cantidad: $%d MXN, Fecha: %s",
-                         actual->cantidadAhorrada, actual->fecha);
+                         actual->cantidad, actual->fecha);
 
                     DrawText(desglose, xDesglose, yOffset, 20, DARKBLUE);
                     yOffset += 30;
@@ -249,7 +251,7 @@ void dibujarScreens() {
                         bool creado;
                         FILE *archivo = manejoArchivos("ahorros.txt", "a", &creado);
                         if (archivo != NULL) {
-                            agregarRegistroAhorro(1, "Trunks", cantidad, fecha, "ahorros.txt");
+                            agregarRegistroAhorro(id_global,usuario_global, cantidad, fecha, "ahorros.txt");
                             snprintf(mensaje, sizeof(mensaje), "Cantidad %d ingresada a tu ahorro!", cantidad);
                             registroExitoso = true;
                         } else {
@@ -276,7 +278,81 @@ void dibujarScreens() {
         case SCREEN_AHORROS_RETIRAR:
             DrawText("MIS AHORROS", 150, 20, 20, BLACK);
             DrawText("RETIRAR AHORRO", 150, 100, 20, BLACK);
+
+            if (listaAhorros == NULL) {
+                DrawText("No tienes ahorros disponibles para retirar.", 150, 200, 20, RED);
+            } else {
+                NodoAhorro *actual = listaAhorros;
+                int ahorroRealizado = 0;
+                float rendimientosGenerados = 0;
+
+                while (actual != NULL) {
+                    ahorroRealizado += actual->cantidad;
+
+                    // Fecha manual
+                    int dia, mes, anio;
+                    if (sscanf(actual->fecha, "%d/%d/%d", &dia, &mes, &anio) == 3) {
+                        struct tm fechaStruct = {0};
+                        fechaStruct.tm_mday = dia;
+                        fechaStruct.tm_mon = mes - 1; // tm_mon va de 0 a 11
+                        fechaStruct.tm_year = anio - 1900; // tm_year es desde 1900
+                        
+                        time_t tFechaAhorro = mktime(&fechaStruct);
+                        time_t tHoy = time(NULL);
+
+                        int diasTranscurridos = (tHoy - tFechaAhorro) / (60 * 60 * 24);
+
+                        // Rendimiento
+                        float rendimientoBase = actual->cantidad * 0.01f;
+                        float interesGanado = rendimientoBase * ((float)diasTranscurridos / 30.0f);
+                        if (interesGanado < 0) interesGanado = 0;
+
+                        rendimientosGenerados += interesGanado;
+                    } else {
+                        DrawText("Error al leer la fecha de un registro.", 150, 300, 20, RED);
+                    }
+
+                    actual = actual->siguiente;
+                }
+
+                float totalDisponible = ahorroRealizado + rendimientosGenerados;
+
+                char info[256];
+                snprintf(info, sizeof(info),
+                        "Ahorro realizado: $%d.00 MXN\n\n\nRendimientos Generados: $%.2f MXN\n\n\nTotal disponible para retiro: $%.2f MXN\n\n\n",
+                        ahorroRealizado, rendimientosGenerados, totalDisponible);
+                DrawText(info, 150, 200, 20, DARKGREEN);
+
+                Rectangle botonRetirar = {150, 400, 200, 50};
+
+                Color botonColor = BLUE;
+                if (CheckCollisionPointRec(GetMousePosition(), botonRetirar)) {
+                    botonColor = GRAY;
+                }
+                
+                DrawRectangleRec(botonRetirar, botonColor);
+                Vector2 textSize = MeasureTextEx(GetFontDefault(), "RETIRAR", 20, 0);
+                DrawText("RETIRAR", 
+                botonRetirar.x + (botonRetirar.width - textSize.x) / 2, 
+                botonRetirar.y + (botonRetirar.height - textSize.y) / 2, 
+                20, BLACK);
+
+                if (CheckCollisionPointRec(GetMousePosition(), botonRetirar) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+                    NodoAhorro *temp;
+                    while (listaAhorros != NULL) {
+                        temp = listaAhorros;
+                        listaAhorros = listaAhorros->siguiente;
+                        free(temp);
+                    }
+
+                    FILE *archivo = fopen("ahorros.txt", "w");
+                    if (archivo != NULL) fclose(archivo);
+
+                    DrawText("Todos los ahorros fueron retirados exitosamente.", 150, 500, 20, verdeEsmeralda);
+                }
+            }
             break;
+
         default:
             break;
     }
@@ -362,7 +438,7 @@ void cargarAhorrosDesdeArchivo(const char *nombreArchivo) {
         NodoAhorro *nuevoNodo = (NodoAhorro *)malloc(sizeof(NodoAhorro));
         if (fscanf(archivo, "%d %s %d %s\n", &nuevoNodo->idUsuario, 
                    nuevoNodo->nombreUsuario, 
-                   &nuevoNodo->cantidadAhorrada, 
+                   &nuevoNodo->cantidad, 
                    nuevoNodo->fecha) == 4) {
             nuevoNodo->siguiente = listaAhorros;
             listaAhorros = nuevoNodo;
@@ -378,7 +454,7 @@ void agregarRegistroAhorro(int idUsuario, const char *nombreUsuario, int cantida
     NodoAhorro *nuevoNodo = (NodoAhorro *)malloc(sizeof(NodoAhorro));
     nuevoNodo->idUsuario = idUsuario;
     snprintf(nuevoNodo->nombreUsuario, sizeof(nuevoNodo->nombreUsuario), "%s", nombreUsuario);
-    nuevoNodo->cantidadAhorrada = cantidad;
+    nuevoNodo->cantidad = cantidad;
     snprintf(nuevoNodo->fecha, sizeof(nuevoNodo->fecha), "%s", fecha);
     nuevoNodo->siguiente = listaAhorros;
 
