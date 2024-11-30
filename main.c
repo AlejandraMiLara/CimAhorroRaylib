@@ -74,22 +74,6 @@ void accionVerAhorros();
 void accionAhorrar();
 void accionRetirar();
 
-// FUNCIONES DE MANEJO DE PANTALLAS
-
-void actualizarScreens();
-void dibujarScreens();
-
-// FUNCIONES DE MANEJO DE BOTONES
-
-void dibujarBotones(Boton botones[], int cantidad);
-void verificarBotones(Boton botones[], int cantidad);
-
-// FUNCIONES DE MANEJO DE ACCIONES
-
-void accionVerAhorros();
-void accionAhorrar();
-void accionRetirar();
-
 // FUNCIONES DE MANEJO DE ARCHIVOS
 FILE* manejoArchivos(const char *nombreArchivo, const char *modo, bool *archivoCreado);
 void cargarAhorrosDesdeArchivo(const char *nombreArchivo);
