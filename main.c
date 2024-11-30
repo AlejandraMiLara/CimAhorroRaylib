@@ -7,6 +7,24 @@
 // G E N E R A L I D A D E S
 //
 
+// ESTRUCTURAS
+
+typedef struct Boton {
+    Rectangle rec;
+    Color color;
+    const char *text;
+    void (*accion)();
+} Boton;
+
+typedef struct NodoAhorro {
+    int idUsuario;
+    char nombreUsuario[50];
+    int cantidadAhorrada;
+    char fecha[11];
+    struct NodoAhorro *siguiente;
+} NodoAhorro;
+
+
 // SCREENS
 
 typedef enum GameScreen {
@@ -28,19 +46,10 @@ char inputBuffer[5] = ""; // Para capturar el ahorro del usuario
 int inputPos = 0;         // Pos actual del buffer de entrada
 bool registroExitoso = false; // Indica si la operacion fue exitosa
 char mensaje[128] = "";   // Mensaje para el usuario
+NodoAhorro *listaAhorros = NULL;
 
 // COLORES
 Color verdeEsmeralda = {80, 200, 120, 255};
-
-// ESTRUCTURAS
-
-typedef struct Boton {
-    Rectangle rec;
-    Color color;
-    const char *text;
-    void (*accion)();
-} Boton;
-
 
 //
 // P R O T O T I P O S  D E  F U N C I O N E S  
@@ -83,7 +92,8 @@ void accionRetirar();
 
 // FUNCIONES DE MANEJO DE ARCHIVOS
 FILE* manejoArchivos(const char *nombreArchivo, const char *modo, bool *archivoCreado);
-
+void cargarAhorrosDesdeArchivo(const char *nombreArchivo);
+void agregarRegistroAhorro(int idUsuario, const char *nombreUsuario, int cantidad, const char *fecha, const char *nombreArchivo);
 
 //
 // M A I N
@@ -98,6 +108,7 @@ int main(void)
     InitAudioDevice();
     InitWindow(screenWidth, screenHeight, "CIMAHORRO");
     SetTargetFPS(60);
+    cargarAhorrosDesdeArchivo("ahorros.txt");
 
     // VARIABLES DE ENTORNO
 
@@ -230,9 +241,7 @@ void dibujarScreens() {
                         bool creado;
                         FILE *archivo = manejoArchivos("ahorros.txt", "a", &creado);
                         if (archivo != NULL) {
-                            fprintf(archivo, "1 Trunks %d %s\n", cantidad, fecha);
-                            fclose(archivo);
-
+                            agregarRegistroAhorro(1, "Trunks", cantidad, fecha, "ahorros.txt");
                             snprintf(mensaje, sizeof(mensaje), "Cantidad %d ingresada a tu ahorro!", cantidad);
                             registroExitoso = true;
                         } else {
@@ -315,6 +324,7 @@ void accionRetirar() {
 }
 
 // FUNCIONES DE MANEJO DE ARCHIVOS
+
 FILE* manejoArchivos(const char *nombreArchivo, const char *modo, bool *archivoCreado) {
     FILE *archivo = fopen(nombreArchivo, modo);
 
@@ -330,4 +340,46 @@ FILE* manejoArchivos(const char *nombreArchivo, const char *modo, bool *archivoC
     }
 
     return archivo;
+}
+
+void cargarAhorrosDesdeArchivo(const char *nombreArchivo) {
+    bool archivoCreado;
+    FILE *archivo = manejoArchivos(nombreArchivo, "r", &archivoCreado);
+
+    if (archivo == NULL) {
+        return;
+    }
+
+    while (!feof(archivo)) {
+        NodoAhorro *nuevoNodo = (NodoAhorro *)malloc(sizeof(NodoAhorro));
+        if (fscanf(archivo, "%d %s %d %s\n", &nuevoNodo->idUsuario, 
+                   nuevoNodo->nombreUsuario, 
+                   &nuevoNodo->cantidadAhorrada, 
+                   nuevoNodo->fecha) == 4) {
+            nuevoNodo->siguiente = listaAhorros;
+            listaAhorros = nuevoNodo;
+        } else {
+            free(nuevoNodo);
+        }
+    }
+
+    fclose(archivo);
+}
+
+void agregarRegistroAhorro(int idUsuario, const char *nombreUsuario, int cantidad, const char *fecha, const char *nombreArchivo) {
+    NodoAhorro *nuevoNodo = (NodoAhorro *)malloc(sizeof(NodoAhorro));
+    nuevoNodo->idUsuario = idUsuario;
+    snprintf(nuevoNodo->nombreUsuario, sizeof(nuevoNodo->nombreUsuario), "%s", nombreUsuario);
+    nuevoNodo->cantidadAhorrada = cantidad;
+    snprintf(nuevoNodo->fecha, sizeof(nuevoNodo->fecha), "%s", fecha);
+    nuevoNodo->siguiente = listaAhorros;
+
+    listaAhorros = nuevoNodo;
+
+    bool archivoCreado;
+    FILE *archivo = manejoArchivos(nombreArchivo, "a", &archivoCreado);
+    if (archivo != NULL) {
+        fprintf(archivo, "%d %s %d %s\n", idUsuario, nombreUsuario, cantidad, fecha);
+        fclose(archivo);
+    }
 }
