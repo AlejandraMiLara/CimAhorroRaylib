@@ -1,6 +1,11 @@
 #include "raylib.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
+
+//
+// G E N E R A L I D A D E S
+//
 
 // SCREENS
 
@@ -18,7 +23,14 @@ GameScreen currentScreen = SCREEN_LOGO;
 const int MAX_SCREENS_DESLIZABLES = SCREEN_AHORROS_PRINCIPAL + 1;
 
 //VARIABLES GLOBALES
-bool logoMostrado = false;
+bool logoMostrado = false; 
+char inputBuffer[5] = ""; // Para capturar el ahorro del usuario
+int inputPos = 0;         // Pos actual del buffer de entrada
+bool registroExitoso = false; // Indica si la operacion fue exitosa
+char mensaje[128] = "";   // Mensaje para el usuario
+
+// COLORES
+Color verdeEsmeralda = {80, 200, 120, 255};
 
 // ESTRUCTURAS
 
@@ -34,6 +46,8 @@ typedef struct Boton {
 // P R O T O T I P O S  D E  F U N C I O N E S  
 //
 
+// FUNCIONES GENERALES
+void obtenerFecha(char *buffer, size_t bufferSize);
 
 // FUNCIONES DE MANEJO DE PANTALLAS
 
@@ -94,7 +108,6 @@ int main(void)
         {{ 0, 0, 200, 50 }, BLUE, "Retirar", accionRetirar}
     };
 
-
     // BUCLE PRINCIPAL
     while (!WindowShouldClose()) {
         // LÓGICA
@@ -122,6 +135,13 @@ int main(void)
 //
 // F U N C I O N E S  
 //
+
+// FUNCIONES GENERALES
+void obtenerFecha(char *buffer, size_t bufferSize) {
+    time_t t = time(NULL);
+    struct tm tm = *localtime(&t);
+    snprintf(buffer, bufferSize, "%02d/%02d/%04d", tm.tm_mday, tm.tm_mon + 1, tm.tm_year + 1900);
+}
 
 // FUNCIONES DE MANEJO DE PANTALLAS
 
@@ -171,7 +191,71 @@ void dibujarScreens() {
         case SCREEN_AHORROS_AHORRAR:
             DrawText("MIS AHORROS", 150, 20, 20, BLACK);
             DrawText("AGREGAR AHORRO", 150, 100, 20, BLACK);
-            break;
+
+            Rectangle inputBox = {100, 200, 300, 50};
+            DrawRectangleRec(inputBox, LIGHTGRAY);
+            DrawRectangleLines(inputBox.x, inputBox.y, inputBox.width, inputBox.height, DARKGRAY);
+
+            DrawText(inputBuffer, inputBox.x + 10, inputBox.y + 15, 20, DARKBLUE);
+
+            DrawText("Ingrese una cantidad para transferir:", 100, 150, 20, BLACK);
+
+            if (IsKeyPressed(KEY_BACKSPACE) && inputPos > 0) {
+                inputBuffer[--inputPos] = '\0';
+            }
+
+            for (int key = KEY_ZERO; key <= KEY_NINE; key++) {
+                if (IsKeyPressed(key) && inputPos < 4) {
+                    inputBuffer[inputPos++] = '0' + (key - KEY_ZERO);
+                    inputBuffer[inputPos] = '\0';
+                }
+            }
+
+            for (int key = KEY_KP_0; key <= KEY_KP_9; key++) {
+                if (IsKeyPressed(key) && inputPos < 4) {
+                    inputBuffer[inputPos++] = '0' + (key - KEY_KP_0);
+                    inputBuffer[inputPos] = '\0';
+                }
+            }
+
+            Boton botonAhorrar = {{420, 200, 150, 50}, BLUE, "Ahorrar", NULL};
+            if (CheckCollisionPointRec(GetMousePosition(), botonAhorrar.rec)) {
+                botonAhorrar.color = GRAY;
+                if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+                    int cantidad = atoi(inputBuffer);
+                    if (cantidad > 0 && cantidad < 9999) {
+                        char fecha[11];
+                        obtenerFecha(fecha, sizeof(fecha));
+
+                        bool creado;
+                        FILE *archivo = manejoArchivos("ahorros.txt", "a", &creado);
+                        if (archivo != NULL) {
+                            fprintf(archivo, "1 Trunks %d %s\n", cantidad, fecha);
+                            fclose(archivo);
+
+                            snprintf(mensaje, sizeof(mensaje), "Cantidad %d ingresada a tu ahorro!", cantidad);
+                            registroExitoso = true;
+                        } else {
+                            snprintf(mensaje, sizeof(mensaje), "Error al abrir o crear el archivo.");
+                        }
+                    } else {
+                        snprintf(mensaje, sizeof(mensaje), "Cantidad invalida, debe ser entre 1 y 9999.");
+                    }
+
+                    inputBuffer[0] = '\0';
+                    inputPos = 0;
+                }
+            }
+            DrawRectangleRec(botonAhorrar.rec, botonAhorrar.color);
+            DrawText(botonAhorrar.text, botonAhorrar.rec.x + 10, botonAhorrar.rec.y + 15, 20, BLACK);
+
+            if (registroExitoso) {
+                DrawText(mensaje, 100, 300, 20, verdeEsmeralda);
+            } else {
+                DrawText(mensaje, 100, 300, 20, RED);
+            }
+        break;
+
         case SCREEN_AHORROS_RETIRAR:
             DrawText("MIS AHORROS", 150, 20, 20, BLACK);
             DrawText("RETIRAR AHORRO", 150, 100, 20, BLACK);
