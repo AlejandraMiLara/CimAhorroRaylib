@@ -197,8 +197,32 @@ void dibujarScreens() {
             break;
         case SCREEN_AHORROS_VER:
             DrawText("MIS AHORROS", 150, 20, 20, BLACK);
-            DrawText("VER AHORROS", 150, 100, 20, BLACK);
-            break;
+
+            int totalAhorros = 0;
+            int yOffset = 60;
+            int xDesglose = 100;
+
+            if (listaAhorros == NULL) {
+                DrawText("Ahorros: $ 0.00 MXN", xDesglose, yOffset, 20, RED);
+            } else {
+                NodoAhorro *actual = listaAhorros;
+                while (actual != NULL) {
+                    totalAhorros += actual->cantidadAhorrada;
+
+                    char desglose[128];
+                    snprintf(desglose, sizeof(desglose), "Cantidad: $%d MXN, Fecha: %s",
+                         actual->cantidadAhorrada, actual->fecha);
+
+                    DrawText(desglose, xDesglose, yOffset, 20, DARKBLUE);
+                    yOffset += 30;
+                    actual = actual->siguiente;
+                }
+
+                char total[128];
+                snprintf(total, sizeof(total), "Total de Ahorros: $%d.00 MXN", totalAhorros);
+                DrawText(total, xDesglose, yOffset + 30, 20, verdeEsmeralda);
+            }
+        break;
         case SCREEN_AHORROS_AHORRAR:
             DrawText("MIS AHORROS", 150, 20, 20, BLACK);
             DrawText("AGREGAR AHORRO", 150, 100, 20, BLACK);
