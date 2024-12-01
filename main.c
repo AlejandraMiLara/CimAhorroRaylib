@@ -24,6 +24,16 @@ typedef struct NodoAhorro {
     struct NodoAhorro *siguiente;
 } NodoAhorro;
 
+typedef struct NodoTanda {
+    int idUsuario;
+    char nombreUsuario[50];
+    int montoAportado;
+    int totalParticipantes;
+    char fechaInicio[11];
+    char fechaFin[11];
+    struct NodoTanda *siguiente;
+} NodoTanda;
+
 
 // SCREENS
 
@@ -31,7 +41,10 @@ typedef enum GameScreen {
     SCREEN_LOGO,
     SCREEN_MENU, 
     SCREEN_AHORROS_PRINCIPAL,
-    SCREEN_TANDAS_PRINCIPAL,
+    SCREEN_TANDAS_PRINCIPAL,   
+    SCREEN_TANDAS_CREAR,     
+    SCREEN_TANDAS_UNIR,      
+    SCREEN_TANDAS_VER,       
     SCREEN_PRESTAMOS_PRINCIPAL,
     SCREEN_AHORROS_VER,
     SCREEN_AHORROS_AHORRAR,
@@ -52,6 +65,7 @@ int id_global = 1;
 int logoTimer = 120;
 bool clicReciente = false;
 float tiempoEspera = 0.0f;
+NodoTanda *listaTandas = NULL;
 
 // COLORES
 Color verdeEsmeralda = {80, 200, 120, 255};
@@ -82,6 +96,9 @@ void accionAhorrar();
 void accionRetirar();
 void accionAhorrosPrincipal();
 void accionTandasPrincipal();
+void accionTandasCrear();
+void accionTandasUnir();
+void accionTandasVer();
 void accionPrestamosPrincipal();
 void accionMenu();
 
@@ -122,6 +139,13 @@ int main(void)
         {{ 0, 0, 200, 50 }, BLUE, "Retirar", accionRetirar}
     };
 
+    //Variables: SCREEN_TANDAS_PRINCIPAL
+    Boton botonesTandas[3] = {
+            {{ 0, 0, 200, 50 }, BLUE, "Crear Tanda", accionTandasCrear},
+            {{ 0, 0, 200, 50 }, BLUE, "Unirme a Tanda", accionTandasUnir},
+            {{ 0, 0, 200, 50 }, BLUE, "Mis Tandas", accionTandasVer}
+            };
+
     // BUCLE PRINCIPAL
     while (!WindowShouldClose()) {
         // LÓGICA
@@ -143,7 +167,10 @@ int main(void)
             verificarBotones(botones, 3);
             dibujarBotones(botones, 3);
         }
-
+        if (currentScreen == SCREEN_TANDAS_PRINCIPAL) {
+            verificarBotones(botonesTandas, 3);
+            dibujarBotones(botonesTandas, 3);
+        }
         if (currentScreen != SCREEN_MENU && currentScreen != SCREEN_LOGO) {
             regresar_menu.rec.x = 20;
             regresar_menu.rec.y = 600;
@@ -202,6 +229,15 @@ void dibujarScreens() {
             break;
         case SCREEN_PRESTAMOS_PRINCIPAL:
             DrawText("MIS PRESTAMOS", 150, 20, 20, BLACK);
+            break;
+        case SCREEN_TANDAS_CREAR:
+            DrawText("Crear Tanda", 150, 20, 20, BLACK);
+            break;
+        case SCREEN_TANDAS_UNIR:
+            DrawText("Unirse a Tanda", 150, 20, 20, BLACK);
+            break;
+        case SCREEN_TANDAS_VER:
+            DrawText("Mis Tandas", 150, 20, 20, BLACK);
             break;
         case SCREEN_AHORROS_VER:
             DrawText("MIS AHORROS", 150, 20, 20, BLACK);
@@ -472,6 +508,18 @@ void accionAhorrosPrincipal(){
 
 void accionTandasPrincipal(){
     currentScreen = SCREEN_TANDAS_PRINCIPAL;
+}
+
+void accionTandasCrear() {
+    currentScreen = SCREEN_TANDAS_CREAR;
+}
+
+void accionTandasUnir() {
+    currentScreen = SCREEN_TANDAS_UNIR;
+}
+
+void accionTandasVer() {
+    currentScreen = SCREEN_TANDAS_VER;
 }
 
 void accionMenu(){
