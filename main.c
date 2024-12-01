@@ -31,14 +31,14 @@ typedef enum GameScreen {
     SCREEN_LOGO,
     SCREEN_MENU, 
     SCREEN_AHORROS_PRINCIPAL,
+    SCREEN_TANDAS_PRINCIPAL,
+    SCREEN_PRESTAMOS_PRINCIPAL,
     SCREEN_AHORROS_VER,
     SCREEN_AHORROS_AHORRAR,
     SCREEN_AHORROS_RETIRAR,
-    SCREEN_MAX,
 } GameScreen;
 
 GameScreen currentScreen = SCREEN_LOGO;
-const int MAX_SCREENS_DESLIZABLES = SCREEN_AHORROS_PRINCIPAL + 1;
 
 //VARIABLES GLOBALES
 bool logoMostrado = false; 
@@ -49,6 +49,8 @@ char mensaje[128] = "";   // Mensaje para el usuario
 NodoAhorro *listaAhorros = NULL;
 char usuario_global[50] = "Trunks";
 int id_global = 1;
+int logoTimer = 120;
+bool clicReciente = false;
 
 // COLORES
 Color verdeEsmeralda = {80, 200, 120, 255};
@@ -66,15 +68,21 @@ void actualizarScreens();
 void dibujarScreens();
 
 // FUNCIONES DE MANEJO DE BOTONES
-
+void actualizarPantalla();
 void dibujarBotones(Boton botones[], int cantidad);
 void verificarBotones(Boton botones[], int cantidad);
+void dibujarBoton(Boton *boton);
+void verificarBoton(Boton *boton);
 
 // FUNCIONES DE MANEJO DE ACCIONES
 
 void accionVerAhorros();
 void accionAhorrar();
 void accionRetirar();
+void accionAhorrosPrincipal();
+void accionTandasPrincipal();
+void accionPrestamosPrincipal();
+void accionMenu();
 
 // FUNCIONES DE MANEJO DE ARCHIVOS
 FILE* manejoArchivos(const char *nombreArchivo, const char *modo, bool *archivoCreado);
@@ -97,6 +105,14 @@ int main(void)
     cargarAhorrosDesdeArchivo("ahorros.txt");
 
     // VARIABLES DE ENTORNO
+    Boton regresar_menu = {{ 0, 0, 200, 50 }, BLUE, "< MENU", accionMenu};
+
+    //Variables: SCREEN_MENU
+    Boton botones_menu[3] = {
+        {{ 0, 0, 200, 50 }, BLUE, "Ahorros", accionAhorrosPrincipal},
+        {{ 0, 0, 200, 50 }, BLUE, "Tandas", accionTandasPrincipal},
+        {{ 0, 0, 200, 50 }, BLUE, "Prestamos", accionPrestamosPrincipal}
+    };
 
     //Variables: SCREEN_AHORROS_PRINCIPAL
     Boton botones[3] = {
@@ -116,9 +132,29 @@ int main(void)
 
         dibujarScreens();
         
+        if (currentScreen == SCREEN_MENU) {
+            verificarBotones(botones_menu, 3);
+            dibujarBotones(botones_menu, 3);
+        }
+
         if (currentScreen == SCREEN_AHORROS_PRINCIPAL) {
             verificarBotones(botones, 3);
             dibujarBotones(botones, 3);
+        }
+
+        if (currentScreen != SCREEN_MENU && currentScreen != SCREEN_LOGO) {
+            regresar_menu.rec.x = 20;
+            regresar_menu.rec.y = 600;
+
+            verificarBoton(&regresar_menu);
+            dibujarBoton(&regresar_menu);
+        }
+
+        if (currentScreen == SCREEN_LOGO) {
+            logoTimer--;
+            if (logoTimer <= 0) {
+                currentScreen = SCREEN_MENU;
+            }
         }
         
         EndDrawing();
@@ -146,28 +182,6 @@ void actualizarScreens() {
     if(currentScreen == SCREEN_LOGO){
         logoMostrado = true;
     }
-
-    if (IsKeyPressed(KEY_RIGHT)) {
-        if (currentScreen < MAX_SCREENS_DESLIZABLES - 1) {
-            ClearBackground(RAYWHITE);
-            currentScreen = (currentScreen + 1) % MAX_SCREENS_DESLIZABLES;
-        }
-
-        if(currentScreen == SCREEN_LOGO){
-            currentScreen = SCREEN_MENU;
-        }
-    }
-
-    if (IsKeyPressed(KEY_LEFT)) {
-        if (currentScreen > SCREEN_MENU) {
-            ClearBackground(RAYWHITE);
-            currentScreen = (currentScreen - 1 + MAX_SCREENS_DESLIZABLES) % MAX_SCREENS_DESLIZABLES;
-        }
-
-        if(currentScreen == SCREEN_LOGO){
-            currentScreen = SCREEN_MENU;
-        }
-    }
 }
 
 void dibujarScreens() {
@@ -180,6 +194,12 @@ void dibujarScreens() {
             break;
         case SCREEN_AHORROS_PRINCIPAL:
             DrawText("MIS AHORROS", 150, 20, 20, BLACK);
+            break;
+        case SCREEN_TANDAS_PRINCIPAL:
+            DrawText("MIS TANDAS", 150, 20, 20, BLACK);
+            break;
+        case SCREEN_PRESTAMOS_PRINCIPAL:
+            DrawText("MIS PRESTAMOS", 150, 20, 20, BLACK);
             break;
         case SCREEN_AHORROS_VER:
             DrawText("MIS AHORROS", 150, 20, 20, BLACK);
@@ -360,6 +380,12 @@ void dibujarScreens() {
 
 // FUNCIONES DE MANEJO DE BOTONES
 
+void actualizarPantalla() {
+    if (clicReciente && !IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
+        clicReciente = false;
+    }
+}
+
 void dibujarBotones(Boton botones[], int cantidad) {
     int padding = 20;
     int totalHeight = (cantidad * 50) + (padding * (cantidad - 1));
@@ -386,12 +412,40 @@ void dibujarBotones(Boton botones[], int cantidad) {
 }
 
 void verificarBotones(Boton botones[], int cantidad) {
+
+    if (clicReciente) return;
+
     for (int i = 0; i < cantidad; i++) {
         if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && CheckCollisionPointRec(GetMousePosition(), botones[i].rec)) {
             botones[i].accion();
+            clicReciente = true;
+            break;
         }
     }
 }
+
+void verificarBoton(Boton *boton) {
+    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && CheckCollisionPointRec(GetMousePosition(), boton->rec)) {
+        boton->accion();
+    }
+}
+
+void dibujarBoton(Boton *boton) {
+    if (CheckCollisionPointRec(GetMousePosition(), boton->rec)) {
+        boton->color = GRAY;
+    } else {
+        boton->color = BLUE;
+    }
+
+    DrawRectangleRec(boton->rec, boton->color);
+
+    Vector2 textSize = MeasureTextEx(GetFontDefault(), boton->text, 20, 0);
+    DrawText(boton->text, 
+             boton->rec.x + (boton->rec.width - textSize.x) / 2, 
+             boton->rec.y + (boton->rec.height - textSize.y) / 2, 
+             20, BLACK);
+}
+
 
 // FUNCIONES DE MANEJO DE ACCIONES EN BOTONES
 
@@ -405,6 +459,23 @@ void accionAhorrar() {
 
 void accionRetirar() {
     currentScreen = SCREEN_AHORROS_RETIRAR;
+}
+
+void accionAhorrosPrincipal(){
+    currentScreen = SCREEN_AHORROS_PRINCIPAL;
+}
+
+void accionTandasPrincipal(){
+    currentScreen = SCREEN_TANDAS_PRINCIPAL;
+}
+
+void accionMenu(){
+    clicReciente = false;
+    currentScreen = SCREEN_MENU;
+}
+
+void accionPrestamosPrincipal(){
+    currentScreen = SCREEN_PRESTAMOS_PRINCIPAL;
 }
 
 // FUNCIONES DE MANEJO DE ARCHIVOS
