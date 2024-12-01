@@ -51,6 +51,7 @@ char usuario_global[50] = "Trunks";
 int id_global = 1;
 int logoTimer = 120;
 bool clicReciente = false;
+float tiempoEspera = 0.0f;
 
 // COLORES
 Color verdeEsmeralda = {80, 200, 120, 255};
@@ -68,7 +69,7 @@ void actualizarScreens();
 void dibujarScreens();
 
 // FUNCIONES DE MANEJO DE BOTONES
-void actualizarPantalla();
+void actualizarClicReciente();
 void dibujarBotones(Boton botones[], int cantidad);
 void verificarBotones(Boton botones[], int cantidad);
 void dibujarBoton(Boton *boton);
@@ -125,11 +126,12 @@ int main(void)
     while (!WindowShouldClose()) {
         // LÓGICA
         actualizarScreens();
+        actualizarClicReciente();
         
         // DIBUJO
         BeginDrawing();
         ClearBackground(RAYWHITE);
-
+        
         dibujarScreens();
         
         if (currentScreen == SCREEN_MENU) {
@@ -380,9 +382,12 @@ void dibujarScreens() {
 
 // FUNCIONES DE MANEJO DE BOTONES
 
-void actualizarPantalla() {
-    if (clicReciente && !IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
-        clicReciente = false;
+void actualizarClicReciente() {
+    if (clicReciente) {
+        tiempoEspera -= GetFrameTime();
+        if (tiempoEspera <= 0.0f) {
+            clicReciente = false;
+        }
     }
 }
 
@@ -412,13 +417,13 @@ void dibujarBotones(Boton botones[], int cantidad) {
 }
 
 void verificarBotones(Boton botones[], int cantidad) {
-
     if (clicReciente) return;
 
     for (int i = 0; i < cantidad; i++) {
         if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && CheckCollisionPointRec(GetMousePosition(), botones[i].rec)) {
             botones[i].accion();
             clicReciente = true;
+            tiempoEspera = 0.2f;
             break;
         }
     }
