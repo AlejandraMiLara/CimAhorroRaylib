@@ -64,11 +64,19 @@ char mensaje[128] = "";   // Mensaje para el usuario
 NodoAhorro *listaAhorros = NULL;
 char usuario_global[50] = "Trunks";
 int id_global = 1;
-int logoTimer = 120;
+int logoTimer = 200;
 bool clicReciente = false;
 float tiempoEspera = 0.0f;
 NodoTanda *listaTandas = NULL;
 Boton regresarBoton;
+
+// Variables para las texturas
+Texture2D LOGO;
+Texture2D MENU;
+Texture2D OPCS;
+Texture2D OPC1;
+Texture2D OPC2;
+Texture2D OPC3;
 
 // COLORES
 Color verdeEsmeralda = {80, 200, 120, 255};
@@ -80,6 +88,8 @@ Color ColorBotonesOscuro = {1, 140, 115, 255};
 
 // FUNCIONES GENERALES
 void obtenerFecha(char *buffer, size_t bufferSize);
+void cargarTexturas();
+void liberarTexturas();
 
 // FUNCIONES DE MANEJO DE PANTALLAS
 
@@ -133,7 +143,7 @@ int main(void)
     SetTargetFPS(60);
     cargarAhorrosDesdeArchivo("ahorros.txt");
     cargarTandasDesdeArchivo("tandas.txt");
-
+    cargarTexturas();
     // VARIABLES DE ENTORNO
     Boton regresar_menu = {{ 0, 0, 200, 50 }, BLUE, "< MENU", accionMenu};
 
@@ -212,6 +222,8 @@ int main(void)
         EndDrawing();
     }
 
+    liberarTexturas();
+
     CloseWindow();
 
     return 0;
@@ -228,6 +240,23 @@ void obtenerFecha(char *buffer, size_t bufferSize) {
     snprintf(buffer, bufferSize, "%02d/%02d/%04d", tm.tm_mday, tm.tm_mon + 1, tm.tm_year + 1900);
 }
 
+void cargarTexturas() {
+    LOGO = LoadTexture("images/LOGO.png");
+    MENU = LoadTexture("images/MENU.png");
+    OPCS = LoadTexture("images/OPCS.png");
+    OPC1 = LoadTexture("images/OPC1.png");
+    OPC2 = LoadTexture("images/OPC2.png");
+    OPC3 = LoadTexture("images/OPC3.png");
+}
+
+void liberarTexturas() {
+    UnloadTexture(LOGO);
+    UnloadTexture(MENU);
+    UnloadTexture(OPCS);
+    UnloadTexture(OPC1);
+    UnloadTexture(OPC2);
+    UnloadTexture(OPC3);
+}
 // FUNCIONES DE MANEJO DE PANTALLAS
 
 void actualizarScreens() {
@@ -237,25 +266,32 @@ void actualizarScreens() {
 }
 
 void dibujarScreens() {
+
     switch (currentScreen) {
         case SCREEN_LOGO:
-            DrawText("LOGO", 150, 20, 20, BLACK);
+            DrawTexture(LOGO, 0, 0, WHITE);
             break;
         case SCREEN_MENU:
+            DrawTexture(MENU, 0, 0, WHITE);
             DrawText("MENU", 150, 20, 20, BLACK);
             break;
         case SCREEN_AHORROS_PRINCIPAL:
+            DrawTexture(OPCS, 0, 0, WHITE);
             DrawText("MIS AHORROS", 150, 20, 20, BLACK);
             break;
         case SCREEN_TANDAS_PRINCIPAL:
+            DrawTexture(OPCS, 0, 0, WHITE);
+            DrawText("MIS AHORROS", 150, 20, 20, BLACK);
             DrawText("MIS TANDAS", 150, 20, 20, BLACK);
             break;
         case SCREEN_PRESTAMOS_PRINCIPAL:
+            DrawTexture(OPCS, 0, 0, WHITE);
+            DrawText("MIS AHORROS", 150, 20, 20, BLACK);
             DrawText("MIS PRESTAMOS", 150, 20, 20, BLACK);
             break;
         case SCREEN_TANDAS_CREAR:
+            DrawTexture(OPC1, 0, 0, WHITE);
             DrawText("Crear Tanda", 150, 20, 20, BLACK);
-
             // Definir las variables estáticas para los campos de entrada
             static char nombreTanda[50] = "";
             static char montoAportado[10] = "";
@@ -608,6 +644,7 @@ void dibujarScreens() {
             DrawText("Mis Tandas", 150, 20, 20, BLACK);
             break;
         case SCREEN_AHORROS_VER:
+            DrawTexture(OPC2, 0, 0, WHITE);
             DrawText("MIS AHORROS", 150, 20, 20, BLACK);
 
             int totalAhorros = 0;
@@ -636,6 +673,7 @@ void dibujarScreens() {
             }
         break;
         case SCREEN_AHORROS_AHORRAR:
+            DrawTexture(OPC2, 0, 0, WHITE);
             DrawText("MIS AHORROS", 150, 20, 20, BLACK);
             DrawText("AGREGAR AHORRO", 150, 100, 20, BLACK);
 
@@ -702,6 +740,7 @@ void dibujarScreens() {
         break;
 
         case SCREEN_AHORROS_RETIRAR:
+            DrawTexture(OPC3, 0, 0, WHITE);
             DrawText("MIS AHORROS", 150, 20, 20, BLACK);
             DrawText("RETIRAR AHORRO", 150, 100, 20, BLACK);
 
@@ -782,6 +821,7 @@ void dibujarScreens() {
         default:
             break;
     }
+
 }
 
 // FUNCIONES DE MANEJO DE BOTONES
