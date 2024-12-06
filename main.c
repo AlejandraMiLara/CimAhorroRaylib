@@ -5,6 +5,7 @@
 #include <string.h>
 #include <stdbool.h>
 
+
 //
 // G E N E R A L I D A D E S
 //
@@ -47,6 +48,7 @@ typedef enum GameScreen {
     SCREEN_TANDAS_CREAR,     
     SCREEN_TANDAS_UNIR,      
     SCREEN_TANDAS_VER,       
+    SCREEN_PAGOS_VER,
     SCREEN_PRESTAMOS_PRINCIPAL,
     SCREEN_AHORROS_VER,
     SCREEN_AHORROS_AHORRAR,
@@ -116,6 +118,7 @@ void accionTandasPrincipal();
 void accionTandasCrear();
 void accionTandasUnir();
 void accionTandasVer();
+void accionPagosVer();
 void accionPrestamosPrincipal();
 void accionMenu();
 void regresarAccion();
@@ -162,10 +165,11 @@ int main(void)
     };
 
     //Variables: SCREEN_TANDAS_PRINCIPAL
-    Boton botonesTandas[3] = {
+    Boton botonesTandas[4] = {
             {{ 0, 0, 200, 50 }, verdeEsmeralda, "Crear Tanda", accionTandasCrear},
             {{ 0, 0, 200, 50 }, verdeEsmeralda, "Unirme a Tanda", accionTandasUnir},
-            {{ 0, 0, 200, 50 }, verdeEsmeralda, "Mis Tandas", accionTandasVer}
+            {{ 0, 0, 200, 50 }, verdeEsmeralda, "Mis Tandas", accionTandasVer},
+            {{ 0, 0, 200, 50 }, verdeEsmeralda, "Historial de pagos", accionPagosVer}
             };
 
     // Definir el botón de regresar
@@ -193,8 +197,8 @@ int main(void)
             dibujarBotones(botones, 3);
         }
         if (currentScreen == SCREEN_TANDAS_PRINCIPAL) {
-            verificarBotones(botonesTandas, 3);
-            dibujarBotones(botonesTandas, 3);
+            verificarBotones(botonesTandas, 4);
+            dibujarBotones(botonesTandas, 4);
         }
         if (currentScreen == SCREEN_AHORROS_PRINCIPAL || currentScreen == SCREEN_PRESTAMOS_PRINCIPAL || currentScreen == SCREEN_TANDAS_PRINCIPAL ) {
             regresar_menu.rec.x = 20;
@@ -273,7 +277,6 @@ void dibujarScreens() {
             break;
         case SCREEN_MENU:
             DrawTexture(MENU, 0, 0, WHITE);
-            DrawText("MENU", 150, 20, 20, BLACK);
             break;
         case SCREEN_AHORROS_PRINCIPAL:
             DrawTexture(OPCS, 0, 0, WHITE);
@@ -281,12 +284,9 @@ void dibujarScreens() {
             break;
         case SCREEN_TANDAS_PRINCIPAL:
             DrawTexture(OPCS, 0, 0, WHITE);
-            DrawText("MIS AHORROS", 150, 20, 20, BLACK);
-            DrawText("MIS TANDAS", 150, 20, 20, BLACK);
             break;
         case SCREEN_PRESTAMOS_PRINCIPAL:
             DrawTexture(OPCS, 0, 0, WHITE);
-            DrawText("MIS AHORROS", 150, 20, 20, BLACK);
             DrawText("MIS PRESTAMOS", 150, 20, 20, BLACK);
             break;
         case SCREEN_TANDAS_CREAR:
@@ -498,6 +498,7 @@ void dibujarScreens() {
             break;
 
         case SCREEN_TANDAS_UNIR:
+             DrawTexture(OPC1, 0, 0, WHITE);
             // Declarar variables de control de mensaje
             static bool mensajeMostrado = false;  // Variable para controlar si el mensaje debe mostrarse
             static char mensaje[100];  
@@ -638,11 +639,278 @@ void dibujarScreens() {
             }
 
             break;
-
-
         case SCREEN_TANDAS_VER:
+             DrawTexture(OPC2, 0, 0, WHITE);
+            // Declarar variables
+            static char nombreUsuario[50] = "";
+            static char mensajeError[128] = "";
+            static bool nombreIngresado = false;
+            static int tandaSeleccionadaIdd = -1;
+            static char fechaActual[20] = "";
+
             DrawText("Mis Tandas", 150, 20, 20, BLACK);
+
+            // Obtener la fecha actual usando tu función
+            obtenerFecha(fechaActual, sizeof(fechaActual));
+
+            // Si no se ha ingresado el nombre del usuario
+            if (!nombreIngresado) {
+                DrawText("Ingrese su nombre:", 100, 100, 20, BLACK);
+
+                // Cuadro de texto para el nombre
+                Rectangle inputNombre = {100, 140, 300, 40};
+                DrawRectangleRec(inputNombre, GRAY);
+                DrawText(nombreUsuario, inputNombre.x + 10, inputNombre.y + 10, 20, BLACK);
+
+                // Entrada de texto
+                if (IsKeyPressed(KEY_BACKSPACE) && strlen(nombreUsuario) > 0) {
+                    nombreUsuario[strlen(nombreUsuario) - 1] = '\0';
+                } else {
+                    char c = GetCharPressed();
+                    while (c > 0) {
+                        if (strlen(nombreUsuario) < sizeof(nombreUsuario) - 1) {
+                            nombreUsuario[strlen(nombreUsuario)] = c;
+                        }
+                        c = GetCharPressed();
+                    }
+                }
+
+                // Botón para confirmar el nombre
+                Rectangle botonConfirmar = {450, 140, 100, 40};
+                DrawRectangleRec(botonConfirmar, DARKGREEN);
+                DrawText("OK", botonConfirmar.x + 30, botonConfirmar.y + 10, 20, WHITE);
+
+                if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && CheckCollisionPointRec(GetMousePosition(), botonConfirmar)) {
+                    if (strlen(nombreUsuario) == 0) {
+                        snprintf(mensajeError, sizeof(mensajeError), "El nombre no puede estar vacío.");
+                    } else {
+                        nombreIngresado = true;
+                    }
+                }
+
+                // Mostrar mensaje de error si lo hay
+                if (strlen(mensajeError) > 0) {
+                    DrawText(mensajeError, 100, 200, 20, RED);
+                }
+            } else {
+                // Mostrar tandas a las que el usuario está unido
+                DrawText("Tandas a las que estás unido:", 100, 100, 20, BLACK);
+
+                NodoTanda *actual = listaTandas;
+                int yPos = 140;
+                while (actual != NULL) {
+                    // Verificar si el usuario pertenece a la tanda
+                    FILE *archivo = fopen("participantes.txt", "r");
+                    bool pertenece = false;
+                    if (archivo != NULL) {
+                        char participante[50];
+                        int idTandaArchivo;
+                        while (fscanf(archivo, "%d %49s\n", &idTandaArchivo, participante) == 2) {
+                            if (idTandaArchivo == actual->idTanda && strcmp(participante, nombreUsuario) == 0) {
+                                pertenece = true;
+                                break;
+                            }
+                        }
+                        fclose(archivo);
+                    }
+
+                    if (pertenece) {
+                        // Dibujar nombre de la tanda
+                        DrawText(actual->nombreTanda, 100, yPos, 20, BLACK);
+
+                        // Botón para seleccionar tanda
+                        Rectangle tandaRect = {400, yPos, 200, 40};
+                        DrawRectangleRec(tandaRect, LIGHTGRAY);
+                        DrawText("Pagar", tandaRect.x + 50, tandaRect.y + 10, 20, BLACK);
+
+                        // Selección de tanda
+                        if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && CheckCollisionPointRec(GetMousePosition(), tandaRect)) {
+                            tandaSeleccionadaIdd = actual->idTanda;
+                        }
+
+                        yPos += 60;  // Espacio entre tandas
+                    }
+                    actual = actual->siguiente;
+                }
+
+                // Si se selecciona una tanda, mostrar detalles y opción para pagar
+                if (tandaSeleccionadaIdd != -1) {
+                    actual = listaTandas;
+                    while (actual != NULL) {
+                        if (actual->idTanda == tandaSeleccionadaIdd) {
+                            // Mostrar detalles de la tanda
+                            char infoTanda[128];
+                            snprintf(infoTanda, sizeof(infoTanda), "Tanda: %s, Monto: $%d", actual->nombreTanda, actual->montoAportado);
+                            DrawText(infoTanda, 100, yPos, 20, BLACK);
+
+                            Rectangle botonPagar = {400, yPos, 200, 40};
+                            DrawRectangleRec(botonPagar, DARKGREEN);
+                            DrawText("Realizar Pago", botonPagar.x + 30, botonPagar.y + 10, 20, WHITE);
+
+                            // Validar y realizar pago
+                            if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && CheckCollisionPointRec(GetMousePosition(), botonPagar)) {
+                                // Verificar si ya realizó un pago esta semana
+                                FILE *archivoPagos = fopen("Pagos_Tandas.txt", "r");
+                                bool pagoPermitido = true;
+                                if (archivoPagos != NULL) {
+                                    char usuarioPago[50], fechaPago[20];
+                                    int idTandaPago, montoPago;
+                                    while (fscanf(archivoPagos, "%49s %d %d %19s\n", usuarioPago, &idTandaPago, &montoPago, fechaPago) == 4) {
+                                        if (strcmp(usuarioPago, nombreUsuario) == 0 && idTandaPago == tandaSeleccionadaIdd) {
+                                            // Analizar la fecha de pago (usando sscanf en lugar de strptime)
+                                            struct tm fechaPagoTm = {0};
+                                            if (sscanf(fechaPago, "%d/%d/%d", &fechaPagoTm.tm_mday, &fechaPagoTm.tm_mon, &fechaPagoTm.tm_year) == 3) {
+                                                fechaPagoTm.tm_year -= 1900;  // Ajuste para tm_year
+                                                fechaPagoTm.tm_mon -= 1;      // Ajuste para tm_mon (0-11)
+
+                                                time_t tiempoPago = mktime(&fechaPagoTm);
+                                                time_t t = time(NULL);
+                                                if (difftime(t, tiempoPago) < 7 * 24 * 3600) {
+                                                    pagoPermitido = false;
+                                                    snprintf(mensajeError, sizeof(mensajeError), "Solo puede pagar una vez por semana.");
+                                                    break;
+                                                }
+                                            }
+                                        }
+                                    }
+                                    fclose(archivoPagos);
+                                }
+
+                                if (pagoPermitido) {
+                                    // Registrar el pago
+                                    archivoPagos = fopen("Pagos_Tandas.txt", "a");
+                                    if (archivoPagos != NULL) {
+                                        fprintf(archivoPagos, "%s %d %d %s\n", nombreUsuario, actual->idTanda, actual->montoAportado, fechaActual);
+                                        fclose(archivoPagos);
+                                        snprintf(mensajeError, sizeof(mensajeError), "Pago realizado con éxito.");
+                                    } else {
+                                        snprintf(mensajeError, sizeof(mensajeError), "Error al registrar el pago.");
+                                    }
+                                }
+                                tandaSeleccionadaIdd = -1;
+                            }
+
+                            yPos += 60;
+                            break;
+                        }
+                        actual = actual->siguiente;
+                    }
+                }
+
+                // Mostrar mensaje de éxito o error
+                if (strlen(mensajeError) > 0) {
+                    DrawText(mensajeError, 100, yPos + 20, 20, RED);
+                }
+            }
             break;
+        case SCREEN_PAGOS_VER:
+            DrawTexture(OPC3, 0, 0, WHITE);
+            // Declarar variables
+            static char mensajeErrorPagos[128] = "";
+            static bool nombreIngresadoPagos = false;
+            static char nombreUsuarioPagos[50] = "";
+            static int pagoSeleccionadoId = -1;  // Para almacenar el pago seleccionado
+
+            DrawText("Mis Pagos", 150, 20, 20, BLACK);
+
+            // Si no se ha ingresado el nombre del usuario
+            if (!nombreIngresadoPagos) {
+                DrawText("Ingrese su nombre:", 100, 100, 20, BLACK);
+
+                // Cuadro de texto para el nombre
+                Rectangle inputNombre = {100, 140, 300, 40};
+                DrawRectangleRec(inputNombre, GRAY);
+                DrawText(nombreUsuarioPagos, inputNombre.x + 10, inputNombre.y + 10, 20, BLACK);
+
+                // Entrada de texto
+                if (IsKeyPressed(KEY_BACKSPACE) && strlen(nombreUsuarioPagos) > 0) {
+                    nombreUsuarioPagos[strlen(nombreUsuarioPagos) - 1] = '\0';
+                } else {
+                    char c = GetCharPressed();
+                    while (c > 0) {
+                        if (strlen(nombreUsuarioPagos) < sizeof(nombreUsuarioPagos) - 1) {
+                            nombreUsuarioPagos[strlen(nombreUsuarioPagos)] = c;
+                        }
+                        c = GetCharPressed();
+                    }
+                }
+
+                // Botón para confirmar el nombre
+                Rectangle botonConfirmar = {450, 140, 100, 40};
+                DrawRectangleRec(botonConfirmar, DARKGREEN);
+                DrawText("OK", botonConfirmar.x + 30, botonConfirmar.y + 10, 20, WHITE);
+
+                if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && CheckCollisionPointRec(GetMousePosition(), botonConfirmar)) {
+                    if (strlen(nombreUsuarioPagos) == 0) {
+                        snprintf(mensajeErrorPagos, sizeof(mensajeErrorPagos), "El nombre no puede estar vacío.");
+                    } else {
+                        nombreIngresadoPagos = true;
+                    }
+                }
+
+                // Mostrar mensaje de error si lo hay
+                if (strlen(mensajeErrorPagos) > 0) {
+                    DrawText(mensajeErrorPagos, 100, 200, 20, RED);
+                }
+            } else {
+                // Mostrar pagos realizados por el usuario
+                DrawText("Pagos realizados:", 100, 100, 20, BLACK);
+
+                FILE *archivoPagos = fopen("Pagos_Tandas.txt", "r");
+                if (archivoPagos != NULL) {
+                    char usuarioPago[50], fechaPago[20];
+                    int idTandaPago, montoPago;
+                    int yPos = 140;
+                    bool pagosExistentes = false;
+
+                    while (fscanf(archivoPagos, "%49s %d %d %19s\n", usuarioPago, &idTandaPago, &montoPago, fechaPago) == 4) {
+                        if (strcmp(usuarioPago, nombreUsuarioPagos) == 0) {
+                            pagosExistentes = true;
+                            char textoPago[100];
+                            snprintf(textoPago, sizeof(textoPago), "Tanda ID: %d | Monto: $%d | Fecha: %s", idTandaPago, montoPago, fechaPago);
+                            DrawText(textoPago, 100, yPos, 20, BLACK);
+
+                            // Botón para seleccionar un pago
+                            Rectangle pagoRect = {400, yPos, 200, 40};
+                            DrawRectangleRec(pagoRect, LIGHTGRAY);
+                            DrawText("Ver detalles", pagoRect.x + 50, pagoRect.y + 10, 20, BLACK);
+
+                            if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && CheckCollisionPointRec(GetMousePosition(), pagoRect)) {
+                                pagoSeleccionadoId = idTandaPago; // Guardar el ID del pago seleccionado
+                            }
+
+                            yPos += 60;  // Espacio entre pagos
+                        }
+                    }
+
+                    fclose(archivoPagos);
+
+                    if (!pagosExistentes) {
+                        DrawText("No se encontraron pagos para este usuario.", 100, 200, 20, RED);
+                    }
+
+                    // Si se ha seleccionado un pago, mostrar detalles adicionales
+                    if (pagoSeleccionadoId != -1) {
+                        // Leer nuevamente el archivo de pagos para mostrar los detalles del pago seleccionado
+                        archivoPagos = fopen("Pagos_Tandas.txt", "r");
+                        if (archivoPagos != NULL) {
+                            while (fscanf(archivoPagos, "%49s %d %d %19s\n", usuarioPago, &idTandaPago, &montoPago, fechaPago) == 4) {
+                                if (idTandaPago == pagoSeleccionadoId) {
+                                    char detallesPago[200];
+                                    snprintf(detallesPago, sizeof(detallesPago), "Detalles del Pago:\nID Tanda: %d\nMonto: $%d\nFecha: %s", idTandaPago, montoPago, fechaPago);
+                                    DrawText(detallesPago, 100, yPos, 20, BLACK);
+                                    break;
+                                }
+                            }
+                            fclose(archivoPagos);
+                        }
+                    }
+                } else {
+                    DrawText("Error al cargar los pagos.", 100, 200, 20, RED);
+                }
+            }
+            break;
+
         case SCREEN_AHORROS_VER:
             DrawTexture(OPC2, 0, 0, WHITE);
             DrawText("MIS AHORROS", 150, 20, 20, BLACK);
@@ -929,6 +1197,9 @@ void regresarAccion() {
     else if (currentScreen == SCREEN_TANDAS_VER) {
         currentScreen = SCREEN_TANDAS_PRINCIPAL;  
     }
+    else if (currentScreen == SCREEN_PAGOS_VER) {
+        currentScreen = SCREEN_TANDAS_PRINCIPAL;  
+    }
 
     else if (currentScreen == SCREEN_AHORROS_VER) {
         currentScreen = SCREEN_AHORROS_PRINCIPAL;  
@@ -978,6 +1249,9 @@ void accionTandasVer() {
     currentScreen = SCREEN_TANDAS_VER;
 }
 
+void accionPagosVer(){
+    currentScreen = SCREEN_PAGOS_VER;
+}
 void accionMenu(){
     clicReciente = false;
     currentScreen = SCREEN_MENU;
